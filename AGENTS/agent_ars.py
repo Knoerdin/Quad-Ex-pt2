@@ -1,19 +1,18 @@
 # agent.py
 import argparse
 from sb3_contrib import ARS
-from AGENTS.env import QuadrupedEnv
+from env import QuadrupedEnv
 import gymnasium as gym
 from gym_custom_terrain import custom_make
 import os
-import tensorboard
 import pandas as pd
-
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from stable_baselines3.common.env_checker import check_env
 
-log_dir = "logs/"
-models_dir = "models/"
+log_dir = "LOGS/TENSOR/"
+models_dir = "TRAINED_MODELS/"
+
+path_expands = ['_Ant-v5/', '_Quad-Ex/']
 
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -33,24 +32,24 @@ def check_env(env):
 def train(model_path: str, total_timesteps: int, use_preset: bool = False):
     if use_preset:
         env = gym.make('Ant-v5', render_mode=None)
-        path_extent = '_Ant-v5'
+        path_extent = path_expands[0]
     else:
-        path_extent = '_quadex'
-        env = QuadrupedEnv(model_path, render_mode=None)
-        check_env(env)
+        path_extent = path_expands[1]
+        raw_env = QuadrupedEnv(model_path, render_mode=None)
+        check_env(raw_env)
         # dummy_env = DummyVecEnv([lambda: raw_env])
         # check_env(dummy_env)
         # env = VecNormalize(dummy_env, norm_obs=True, norm_reward=True)
 
-    model = ARS(policy="MlpPolicy", env=env, verbose=1, tensorboard_log=log_dir)
+    model = ARS(policy="MlpPolicy", env=raw_env, verbose=1, tensorboard_log=log_dir)
 
     print(f"Started training using device: {model.device}")
 
     TIME_STEPS = total_timesteps
-    for i in range(1,1000):
+    for i in range(1,100):
         print(f"Training for {TIME_STEPS*i} steps")
         model.learn(total_timesteps=TIME_STEPS, reset_num_timesteps=False, tb_log_name=f"ARS{path_extent}")
-        model.save(f"ARS{path_extent}/steps={TIME_STEPS*i}")
+        model.save(f"{models_dir}ARS{path_extent}/steps={TIME_STEPS*i}")
 
     env.close()
     return model
@@ -60,17 +59,19 @@ def visualize(model_path: str, use_preset: bool = False, random_terrain: bool = 
         print('random_terrain')
         env = custom_make('CustomTerrainAnt-v0', '../terrain_noise.png')
         mode_number = input("Enter model stepcount (ARS_quadex/steps=x*10000): ")
-        model = ARS.load(f"ARS_quadex/steps={int(mode_number)*10000}", env=env)
+        model = ARS.load(f"{models_dir}ARS{path_expands[0]}steps={int(mode_number)*10000}", env=env)
     elif use_preset:
         env = gym.make('Ant-v5', render_mode="human")
-        mode_number = input("Enter model stepcount (ARS_Ant-v5/steps=x*10000): ")
-        model = ARS.load(f"ARS_Ant-v5/steps={int(mode_number)*10000}", env=env)
+        path = f'{models_dir}ARS{path_expands[0]}'
+        mode_number = input(f"Enter model stepcount ({path}steps=x*10000): ")
+        model = ARS.load(f"{path}steps={int(mode_number)*10000}", env=env)
     else:
         env = QuadrupedEnv(model_path, render_mode="human")
-        model_number = input("Enter model stepcount (ARS_quad_ex/steps=x*10000): ")
-        model = ARS.load(f"ARS_quad_ex/steps={int(model_number)*10000}", env=env)
+        path = f'{models_dir}ARS{path_expands[1]}'
+        model_number = input(f"Enter model stepcount ({path}steps=x*10000): ")
+        model = ARS.load(f"{path}steps={int(model_number)*10000}", env=env)
     distancs = []
-    for ep in range(100):
+    for ep in range(5):
         total_reward = 0
         obs, _ = env.reset()
         terminated, truncated = False, False

@@ -1,19 +1,18 @@
 # agent.py
 import argparse
 from sb3_contrib import RecurrentPPO
-from AGENTS.env import QuadrupedEnv
+from env import QuadrupedEnv
 import gymnasium as gym
 from gym_custom_terrain import custom_make
 import os
-import tensorboard
 import pandas as pd
-
-from stable_baselines3.common.vec_env import DummyVecEnv, VecNormalize
 
 from stable_baselines3.common.env_checker import check_env
 
-log_dir = "logs/"
-models_dir = "models/"
+log_dir = "LOGS/TENSOR/"
+models_dir = "TRAINED_MODELS/"
+
+path_expands = ['_Ant-v5/', '_Quad-Ex/']
 
 if not os.path.exists(log_dir):
     os.makedirs(log_dir)
@@ -33,9 +32,9 @@ def check_env(env):
 def train(model_path: str, total_timesteps: int, use_preset: bool = False):
     if use_preset:
         env = gym.make('Ant-v5', render_mode=None)
-        path_extent = '_Ant-v5'
+        path_extent = path_expands[0]
     else:
-        path_extent = '_quadex'
+        path_extent = path_expands[1]
         raw_env = QuadrupedEnv(model_path, render_mode=None)
         check_env(raw_env)
         # dummy_env = DummyVecEnv([lambda: raw_env])
@@ -50,7 +49,7 @@ def train(model_path: str, total_timesteps: int, use_preset: bool = False):
     for i in range(1,100):
         print(f"Training for {TIME_STEPS*i} steps")
         model.learn(total_timesteps=TIME_STEPS, reset_num_timesteps=False, tb_log_name=f"PPO{path_extent}")
-        model.save(f"PPO{path_extent}/steps={TIME_STEPS*i}")
+        model.save(f"{models_dir}PPO{path_extent}/steps={TIME_STEPS*i}")
 
     env.close()
     return model
@@ -60,17 +59,19 @@ def visualize(model_path: str, use_preset: bool = False, random_terrain: bool = 
         print('random_terrain')
         env = custom_make('CustomTerrainAnt-v0', '../terrain_noise.png')
         mode_number = input("Enter model stepcount (PPO_quadex/steps=x*10000): ")
-        model = RecurrentPPO.load(f"PPO_quadex/steps={int(mode_number)*10000}", env=env)
+        model = RecurrentPPO.load(f"{models_dir}PPO{path_expands[0]}steps={int(mode_number)*10000}", env=env)
     elif use_preset:
         env = gym.make('Ant-v5', render_mode="human")
-        mode_number = input("Enter model stepcount (PPO_Ant-v5/steps=x*10000): ")
-        model = RecurrentPPO.load(f"PPO_Ant-v5/steps={int(mode_number)*10000}", env=env)
+        path = f'{models_dir}PPO{path_expands[0]}'
+        mode_number = input(f"Enter model stepcount ({path}steps=x*10000): ")
+        model = RecurrentPPO.load(f"{path}steps={int(mode_number)*10000}", env=env)
     else:
         env = QuadrupedEnv(model_path, render_mode="human")
-        model_number = input("Enter model stepcount (PPO_quad_ex/steps=x*10000): ")
-        model = RecurrentPPO.load(f"PPO_quad_ex/steps={int(model_number)*10000}", env=env)
+        path = f'{models_dir}PPO{path_expands[1]}'
+        model_number = input(f"Enter model stepcount ({path}steps=x*10000): ")
+        model = RecurrentPPO.load(f"{path}steps={int(model_number)*10000}", env=env)
     distancs = []
-    for ep in range(100):
+    for ep in range(5):
         total_reward = 0
         obs, _ = env.reset()
         terminated, truncated = False, False
