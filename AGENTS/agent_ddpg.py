@@ -1,7 +1,7 @@
 # agent.py
 import argparse
 from stable_baselines3 import DDPG
-from env import QuadrupedEnv
+from AGENTS.env import QuadrupedEnv
 import gymnasium as gym
 from gym_custom_terrain import custom_make
 import os
@@ -95,7 +95,7 @@ def main(training: bool = False, model_path: str = "models/quad_ex.xml", total_t
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train & visualize DDPG on Quadruped")
-    parser.add_argument("--model-path",     type=str, default="models/quad_ex.xml")
+    parser.add_argument("--model-path",     type=str, default="DEPENDENCIES/quad_ex.xml")
     parser.add_argument("--total-timesteps",type=int, default=10_000)
     parser.add_argument("--eval-steps",     type=int, default=1_000)
     parser.add_argument("--training", type=bool, default=False)

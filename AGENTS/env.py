@@ -52,21 +52,19 @@ class QuadrupedEnv(gym.Env):
         action = np.clip(action, self.action_space.low, self.action_space.high)
         self.data.ctrl[:] = action
 
-        # advance sim
         mujoco.mj_step(self.model, self.data)
         mujoco.mj_forward(self.model, self.data)
         self.elapsed_steps += 1
 
-        # Compute observation
+        # Update observation
         obs = np.concatenate([self.data.qpos, self.data.qvel])
 
-        # Termination: check height
+        # Termination and truncation logic
         torso_z   = float(self.data.qpos[2])
         self.terminated = (torso_z < self.min_height)
         self.truncated  = (self.elapsed_steps >= self.max_steps)
 
-        # —— SHAPED REWARD ——
-        # 1) forward progress (along x)
+        # Foreward velocity
         x_pos       = float(self.data.qpos[0])
         forward_vel = 50000* (x_pos - self.last_x_pos)
         self.last_x_pos = x_pos
@@ -105,20 +103,14 @@ class QuadrupedEnv(gym.Env):
         return obs, self.info
 
     def render(self):
-        super().render()
         if self.render_mode == "human":
             if self.viewer is None:
             # first call to render → open the window now
                 self.viewer = mujoco.viewer.launch(self.model, self.data)
-
             while self.viewer.is_alive():
                 mujoco.mj_step(self.model, self.data)
                 mujoco.mj_forward(self.model, self.data)
                 self.viewer.sync()
-                time.sleep(1.0 / self.metadata["render_fps"])
-            # mujoco.mj_forward(self.model, self.data)
-            # self.viewer.sync()
-            # time.sleep(1.0 / self.metadata["render_fps"])
 
         elif self.render_mode == "rgb_array":
             mujoco.mj_forward(self.model, self.data)
